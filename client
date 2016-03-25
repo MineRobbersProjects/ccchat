@@ -1,0 +1,95 @@
+local function clear()
+  term.clear()
+  term.setCursorPos(1,1)
+end
+local function getModem()
+  local ret = peripheral.find("modem", function(n,o) return obj.isWireless() end)
+  return ret
+end
+local bConnected = false
+local sNick = nil
+local maxX, maxY = term.getSize()
+local terminal = term.current()
+local chatWindow = window.create(terminal, 1, 1, maxX, maxY-1)
+local modem = nil
+local function open(channel)
+  if not modem then
+    modem = getModem()
+  end
+  modem.open(channel)
+end
+local function close(channel)
+  if not modem then
+    modem = getModem()
+    return
+  end
+  if modem.isOpen(channel) then modem.close(channel) end
+end
+local function split(str, den)
+  local found = { str:find(den) }
+  if not found then
+    return str
+  else
+  local ret = { string.sub(str, 1, found[#found]-1), string.sub(str, found[#found], -1) }
+  return ret
+end
+local function startsWith(str, pre)
+  local p = string.sub(str, 1, pre:len())
+  return p == pre
+end
+local function drawChat()
+  for tMessage in tChatMessages do
+    if tMessage[1] == "STATUS" then
+      print(tMessage[2])
+    else
+      local sPrint = "<"..tMessage[1].."> "..tMessage[2]
+      chatWindow.print(sPrint)
+    end
+  end
+end
+local function parseStatus(sM)
+  local tParts = {}
+  local message = ""
+  for part in sM:gmatch("[^.]+") do
+    tParts[#tParts+1] = part
+  end
+  if tParts[1] == "closed" then
+    connected = false
+    message = "* Disconnected (Server closed)"
+  elseif tParts[1] == "connected" then
+    if tParts[2] == "admin" then
+      message = "Admin "..tParts[3].." connected."
+    else
+      message = tParts[2].." connected."
+    end
+  elseif tParts[1] == "youKick" then
+    connected = false
+    message = "* You were kicked by "..tParts[2].." ("..tParts[3]..")"
+  elseif tParts[1] == "kick" then
+    message = "* "..tParts[2].." was kicked by "..tParts[3].." ("..tParts[4]..")"
+  end
+  tChatMessages[#tChatMessages+1] = {"STATUS",message}
+end
+local function readChat()
+  local tMessage = { os.pullEvent("modem_message") }
+  if tMessage[2] == os.getComputerID() and tMessage[3] == serverChannel then
+    if startsWith(tMessage[5],"STATUS:") then
+      local tSM = split(tMessage[5],":")
+      local statusMessage = tSM[2]
+      parseStatus(statusMessage)
+    else
+      local tCM = split(tMessage[5],":")
+      tChatMessages[#tChatMessages+1] = tCM
+    end
+    drawChat()
+  end
+end
+local function send()
+  term.setCursorPos(1,maxY)
+  term.write("Message: ")
+  local toSend = read()
+  modem.transmit(serverChannel,os.getComputerID(),nick..":"..toSend)
+end
+while connected do
+  parallel.waitForAll(readChat,send)
+end
