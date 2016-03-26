@@ -26,7 +26,7 @@ end
 local function handleChat()
   local tMessage = { os.pullEvent("modem_message") }
   if startsWith(tMessage[5], "connected:") then
-    local nick = tMessage[5]:sub("connected:":len()+1,-1)
+    local nick = tMessage[5]:sub("connected:":len()+1,-1))
     local admin = false
     for i, v in adminTable do
       if v == nick then
