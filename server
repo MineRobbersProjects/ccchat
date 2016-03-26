@@ -43,3 +43,15 @@ local function handleChat()
     send(tMessage[5])
   end
 end
+local function keyHandling()
+  local tKeyEvent = os.pullEvent("key")
+  if tKeyEvent[2] == keys.q then
+    send("STATUS:closed")
+    running = false
+    return
+  end
+end
+local running = true
+while running do
+  parallel.waitForAny(handleChat,keyHandling)
+end
