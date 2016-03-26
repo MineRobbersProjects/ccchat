@@ -1,0 +1,45 @@
+local adminTableH = fs.open("admin-table","r")
+local adminTable = textutils.serialise(adminTableH.readAll())
+adminTableH.close()
+local listeningMessage = nil
+local users = {}
+local channel = nil
+local modem = peripheral.find("modem",function(n,o) return o.isWireless() end)
+if not modem then
+  print("Error: Wireless modem required.")
+  error()
+else
+  channel = math.random(1,5000)
+  modem.open(channel)
+  listeningMessage = "Listening on channel "..channel.."."
+  print(listeningMessage)
+end
+local function startsWith(str, pre)
+  local p = str:sub(1,pre:len())
+  return p == pre
+end
+local function send(str)
+  for user in users do
+    modem.transmit(users[1],channel,str)
+  end
+end
+local function handleChat()
+  local tMessage = { os.pullEvent("modem_message") }
+  if startsWith(tMessage[5], "connected:") then
+    local nick = tMessage[5]:sub("connected:":len()+1,-1)
+    local admin = false
+    for i, v in adminTable do
+      if v == nick then
+        admin = true
+      end
+    end
+    if admin then
+      send("STATUS:connected.admin."..nick)
+    else
+      send("STATUS:connected."..nick)
+    end
+    users[#users+1] = {tMessage[3],nick}
+  else
+    send(tMessage[5])
+  end
+end
