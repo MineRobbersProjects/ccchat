@@ -40,7 +40,7 @@ end
 local function drawChat()
   for tMessage in tChatMessages do
     if tMessage[1] == "STATUS" then
-      print(tMessage[2])
+      chatWindow.print(tMessage[2])
     else
       local sPrint = "<"..tMessage[1].."> "..tMessage[2]
       chatWindow.print(sPrint)
@@ -90,7 +90,14 @@ local function send()
   local toSend = read()
   modem.transmit(serverChannel,os.getComputerID(),nick..":"..toSend)
 end
-open(tonumber(...))
+serverChannel, nick = ...
+if not serverChannel or not nick then
+  print("Usage: \""..shell.getRunningProgram().." <channel> <nickname>")
+  error()
+end
+serverChannel = tonumber(serverChannel)
+open(os.getComputerID())
+modem.transmit(serverChannel,os.getComputerID(),"connected:"..nick)
 while connected do
   parallel.waitForAll(readChat,send)
 end
