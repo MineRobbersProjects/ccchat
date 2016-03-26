@@ -90,6 +90,7 @@ local function send()
   local toSend = read()
   modem.transmit(serverChannel,os.getComputerID(),nick..":"..toSend)
 end
+open(tonumber(...))
 while connected do
   parallel.waitForAll(readChat,send)
 end
